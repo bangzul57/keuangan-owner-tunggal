@@ -242,28 +242,6 @@ class AccountProvider extends ChangeNotifier {
     }
   }
 
-  // ============================================================
-  // LOAD RECEIVABLE (HUTANG PELANGGAN)
-  // ============================================================
-
-  Future<List<Map<String, dynamic>>> loadReceivables() async {
-    final db = await _dbHelper.database;
-
-    return await db.rawQuery('''
-      SELECT 
-        a.id,
-        a.name,
-        COALESCE(SUM(j.debit - j.credit), 0) AS balance
-      FROM ${DBMigration.tableAccounts} a
-      LEFT JOIN ${DBMigration.tableJournalEntries} j ON j.account_id = a.id
-      WHERE a.type = 'receivable'
-        AND a.is_active = 1
-      GROUP BY a.id
-      HAVING balance != 0
-      ORDER BY a.name ASC
-    ''');
-  }
-
   // ===== HELPER METHODS =====
 
   /// Cari akun berdasarkan ID
