@@ -7,7 +7,6 @@ import '../core/constants/app_strings.dart';
 import '../core/utils/formatters.dart';
 import '../providers/account_provider.dart';
 import '../providers/settings_provider.dart';
-import '../screens/receivable/receivable_list_screen.dart';
 
 /// Drawer navigasi utama aplikasi
 class AppDrawer extends StatelessWidget {
@@ -87,19 +86,14 @@ class AppDrawer extends StatelessWidget {
                 // Section: Piutang & Inventaris
                 _buildSectionHeader(context, 'Manajemen'),
 
-                // Hutang Pelanggan
-                ListTile(
-                  leading: const Icon(Icons.receipt_long),
-                  title: const Text('Hutang Pelanggan'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ReceivableListScreen(),
-                      ),
-                    );
-                  },
+                // Piutang
+                _buildMenuItem(
+                  context: context,
+                  icon: Icons.receipt_long_outlined,
+                  selectedIcon: Icons.receipt_long,
+                  title: AppStrings.receivable,
+                  route: AppRoutes.receivableList,
+                  badge: _getOverdueBadge(context),
                 ),
 
                 // Inventaris (jika retail enabled)
@@ -305,6 +299,16 @@ class AppDrawer extends StatelessWidget {
             : null,
       ),
     );
+  }
+
+  Widget? _getOverdueBadge(BuildContext context) {
+    // TODO: Implement dengan ReceivableProvider
+    // final receivableProvider = context.watch<ReceivableProvider>();
+    // final overdueCount = receivableProvider.overdueCount;
+    // if (overdueCount > 0) {
+    //   return _buildBadge(context, overdueCount.toString(), AppColors.error);
+    // }
+    return null;
   }
 
   Widget? _getLowStockBadge(BuildContext context) {
