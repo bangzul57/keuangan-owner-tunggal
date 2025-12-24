@@ -30,9 +30,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadData() async {
-    // Load semua data yang diperlukan
-    if (!mounted) return;
-
+    // Load semua data yang dibutuhkan
     final accountProvider = context.read<AccountProvider>();
     final transactionProvider = context.read<TransactionProvider>();
     final inventoryProvider = context.read<InventoryProvider>();
@@ -50,6 +48,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final settingsProvider = context.watch<SettingsProvider>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.dashboard),
@@ -73,168 +74,202 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Total Balance Card
-              _buildTotalBalanceCard(),
+              _buildTotalBalanceCard(context),
 
               const SizedBox(height: 20),
 
               // Quick Actions
-              _buildQuickActions(),
+              _buildQuickActions(context, settingsProvider),
 
               const SizedBox(height: 24),
 
-              // Account Cards
-              _buildAccountSection(),
+              // Account List
+              _buildAccountSection(context),
 
               const SizedBox(height: 24),
 
               // Today's Summary
-              _buildTodaySummary(),
-
-              const SizedBox(height: 24),
-
-              // Alerts Section
-              _buildAlertsSection(),
+              _buildTodaySummary(context),
 
               const SizedBox(height: 24),
 
               // Recent Transactions
-              _buildRecentTransactions(),
+              _buildRecentTransactions(context),
 
-              const SizedBox(height: 80), // Space for FAB
+              // Low Stock Alert (if retail enabled)
+              if (settingsProvider.isRetailEnabled) ...[
+                const SizedBox(height: 24),
+                _buildLowStockAlert(context),
+              ],
+
+              const SizedBox(height: 32),
             ],
           ),
         ),
       ),
-      floatingActionButton: _buildFAB(),
+      floatingActionButton: _buildFAB(context, settingsProvider),
     );
   }
 
-  Widget _buildTotalBalanceCard() {
-    return Consumer<AccountProvider>(
-      builder: (context, provider, _) {
-        final theme = Theme.of(context);
+  Widget _buildTotalBalanceCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final accountProvider = context.watch<AccountProvider>();
 
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                theme.colorScheme.primary,
-                theme.colorScheme.primary.withOpacity(0.8),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: theme.colorScheme.primary.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary,
+            theme.colorScheme.primary.withOpacity(0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Total Saldo',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: Colors.white70,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.visibility_outlined,
-                      color: Colors.white70,
-                    ),
-                    onPressed: () {
-                      // TODO: Toggle visibility
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
               Text(
-                Formatters.formatCurrency(provider.totalAssetBalance),
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                'Total Saldo',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white70,
                 ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  _buildBalanceChip(
-                    icon: Icons.account_balance_wallet,
-                    label: 'Kas',
-                    amount: provider.totalCashBalance,
-                  ),
-                  const SizedBox(width: 16),
-                  _buildBalanceChip(
-                    icon: Icons.smartphone,
-                    label: 'Digital',
-                    amount: provider.totalDigitalBalance,
-                  ),
-                ],
+              IconButton(
+                icon: const Icon(Icons.visibility_outlined, color: Colors.white70),
+                onPressed: () {
+                  // TODO: Toggle visibility
+                },
               ),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  Widget _buildBalanceChip({
-    required IconData icon,
-    required String label,
-    required double amount,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.white70, size: 18),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 11,
-                    ),
-                  ),
-                  Text(
-                    Formatters.formatCompact(amount),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
+          const SizedBox(height: 8),
+          Text(
+            Formatters.formatCurrency(accountProvider.totalAssetBalance),
+            style: theme.textTheme.headlineLarge?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _buildBalanceItem(
+                context,
+                'Kas',
+                accountProvider.totalCashBalance,
+                Icons.wallet,
+              ),
+              const SizedBox(width: 24),
+              _buildBalanceItem(
+                context,
+                'Digital',
+                accountProvider.totalDigitalBalance,
+                Icons.smartphone,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildQuickActions() {
-    final settings = context.watch<SettingsProvider>();
+  Widget _buildBalanceItem(
+    BuildContext context,
+    String label,
+    double amount,
+    IconData icon,
+  ) {
+    return Expanded(
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: Colors.white, size: 16),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  Formatters.formatCompact(amount),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActions(BuildContext context, SettingsProvider settings) {
+    final actions = <_QuickAction>[];
+
+    // Digital transaction
+    if (settings.isDigitalEnabled) {
+      actions.add(_QuickAction(
+        icon: Icons.smartphone,
+        label: 'Digital',
+        color: AppColors.digitalAccount,
+        onTap: () => Navigator.pushNamed(context, AppRoutes.digitalForm),
+      ));
+    }
+
+    // Retail transaction
+    if (settings.isRetailEnabled) {
+      actions.add(_QuickAction(
+        icon: Icons.store,
+        label: 'Ritel',
+        color: AppColors.success,
+        onTap: () => Navigator.pushNamed(context, AppRoutes.retailForm),
+      ));
+    }
+
+    // Transfer
+    actions.add(_QuickAction(
+      icon: Icons.swap_horiz,
+      label: 'Transfer',
+      color: AppColors.info,
+      onTap: () => Navigator.pushNamed(context, AppRoutes.transferForm),
+    ));
+
+    // Receivable
+    actions.add(_QuickAction(
+      icon: Icons.receipt_long,
+      label: 'Piutang',
+      color: AppColors.warning,
+      onTap: () => Navigator.pushNamed(context, AppRoutes.receivableList),
+    ));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,85 +282,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         const SizedBox(height: 12),
         Row(
-          children: [
-            if (settings.isDigitalEnabled)
-              Expanded(
-                child: _buildQuickActionButton(
-                  icon: Icons.smartphone,
-                  label: 'Digital',
-                  color: AppColors.digitalAccount,
-                  onTap: () => Navigator.pushNamed(context, AppRoutes.digitalForm),
-                ),
-              ),
-            if (settings.isDigitalEnabled && settings.isRetailEnabled)
-              const SizedBox(width: 12),
-            if (settings.isRetailEnabled)
-              Expanded(
-                child: _buildQuickActionButton(
-                  icon: Icons.store,
-                  label: 'Ritel',
-                  color: AppColors.success,
-                  onTap: () => Navigator.pushNamed(context, AppRoutes.retailForm),
-                ),
-              ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildQuickActionButton(
-                icon: Icons.swap_horiz,
-                label: 'Transfer',
-                color: AppColors.info,
-                onTap: () => Navigator.pushNamed(context, AppRoutes.transferForm),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildQuickActionButton(
-                icon: Icons.receipt_long,
-                label: 'Piutang',
-                color: AppColors.warning,
-                onTap: () => Navigator.pushNamed(context, AppRoutes.receivableList),
-              ),
-            ),
-          ],
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: actions.map((action) {
+            return _buildQuickActionItem(context, action);
+          }).toList(),
         ),
       ],
     );
   }
 
-  Widget _buildQuickActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildQuickActionItem(BuildContext context, _QuickAction action) {
     return InkWell(
-      onTap: onTap,
+      onTap: action.onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                shape: BoxShape.circle,
+                color: action.color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: color, size: 22),
+              child: Icon(
+                action.icon,
+                color: action.color,
+                size: 24,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
+              action.label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ],
         ),
@@ -333,71 +324,79 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildAccountSection() {
-    return Consumer<AccountProvider>(
-      builder: (context, provider, _) {
-        final accounts = provider.assetAccounts;
+  Widget _buildAccountSection(BuildContext context) {
+    final theme = Theme.of(context);
+    final accountProvider = context.watch<AccountProvider>();
 
-        if (accounts.isEmpty) {
-          return _buildEmptyAccountCard();
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Akun Saya',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                TextButton.icon(
-                  onPressed: () =>
-                      Navigator.pushNamed(context, AppRoutes.addAssetAccount),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Tambah'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 100,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: accounts.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
-                itemBuilder: (context, index) {
-                  final account = accounts[index];
-                  return _buildAccountCard(account);
-                },
+            Text(
+              'Akun Saya',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
             ),
+            TextButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(context, AppRoutes.addAssetAccount);
+              },
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Tambah'),
+            ),
           ],
-        );
-      },
+        ),
+        const SizedBox(height: 12),
+        if (accountProvider.isLoading)
+          const Center(child: CircularProgressIndicator())
+        else if (accountProvider.assetAccounts.isEmpty)
+          _buildEmptyState(
+            context,
+            icon: Icons.account_balance_wallet_outlined,
+            message: 'Belum ada akun',
+            action: 'Tambah Akun',
+            onAction: () => Navigator.pushNamed(context, AppRoutes.addAssetAccount),
+          )
+        else
+          SizedBox(
+            height: 120,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: accountProvider.assetAccounts.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final account = accountProvider.assetAccounts[index];
+                return _buildAccountCard(context, account);
+              },
+            ),
+          ),
+      ],
     );
   }
 
-  Widget _buildAccountCard(Account account) {
+  Widget _buildAccountCard(BuildContext context, Account account) {
+    final theme = Theme.of(context);
     final color = AppColors.getAccountTypeColor(account.type.value);
 
     return InkWell(
-      onTap: () => Navigator.pushNamed(
-        context,
-        AppRoutes.accountDetail,
-        arguments: account,
-      ),
-      borderRadius: BorderRadius.circular(12),
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          AppRoutes.accountDetail,
+          arguments: account,
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         width: 160,
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.2)),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,7 +407,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
+                    color: color.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(
@@ -421,10 +420,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Expanded(
                   child: Text(
                     account.name,
-                    style: TextStyle(
-                      color: color,
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      fontSize: 13,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -432,119 +429,82 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ],
             ),
-            Text(
-              Formatters.formatCurrency(account.balance),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyAccountCard() {
-    return Card(
-      child: InkWell(
-        onTap: () => Navigator.pushNamed(context, AppRoutes.addAssetAccount),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.add,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Tambah Akun',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    Text(
-                      'Mulai dengan menambahkan akun kas atau e-wallet',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTodaySummary() {
-    return Consumer<TransactionProvider>(
-      builder: (context, provider, _) {
-        final todayTransactions = provider.todayTransactions;
-        final todayProfit = provider.todayProfit;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Ringkasan Hari Ini',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: _buildSummaryCard(
-                    icon: Icons.receipt_outlined,
-                    label: 'Transaksi',
-                    value: todayTransactions.length.toString(),
-                    color: AppColors.info,
+                Text(
+                  account.type.label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildSummaryCard(
-                    icon: Icons.trending_up,
-                    label: 'Profit',
-                    value: Formatters.formatCurrency(todayProfit),
-                    color: todayProfit >= 0 ? AppColors.success : AppColors.error,
-                    isAmount: true,
+                const SizedBox(height: 4),
+                Text(
+                  Formatters.formatCurrency(account.balance),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Widget _buildSummaryCard({
+  Widget _buildTodaySummary(BuildContext context) {
+    final theme = Theme.of(context);
+    final transactionProvider = context.watch<TransactionProvider>();
+    final todayTransactions = transactionProvider.todayTransactions;
+    final todayProfit = transactionProvider.todayProfit;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Ringkasan Hari Ini',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildSummaryItem(
+                context,
+                icon: Icons.receipt_long,
+                label: 'Transaksi',
+                value: todayTransactions.length.toString(),
+                color: AppColors.info,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildSummaryItem(
+                context,
+                icon: Icons.trending_up,
+                label: 'Profit',
+                value: Formatters.formatCurrency(todayProfit),
+                color: todayProfit >= 0 ? AppColors.success : AppColors.error,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryItem(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required String value,
     required Color color,
-    bool isAmount = false,
   }) {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -552,211 +512,124 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: isAmount ? 16 : null,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAlertsSection() {
-    return Consumer2<InventoryProvider, SettingsProvider>(
-      builder: (context, inventoryProvider, settingsProvider, _) {
-        final alerts = <Widget>[];
+  Widget _buildRecentTransactions(BuildContext context) {
+    final theme = Theme.of(context);
+    final transactionProvider = context.watch<TransactionProvider>();
+    final recentTransactions = transactionProvider.transactions.take(5).toList();
 
-        // Low stock alert
-        if (settingsProvider.isRetailEnabled) {
-          final lowStockItems = inventoryProvider.lowStockItems;
-          if (lowStockItems.isNotEmpty) {
-            alerts.add(
-              _buildAlertCard(
-                icon: Icons.inventory_2_outlined,
-                title: 'Stok Menipis',
-                message: '${lowStockItems.length} barang stok hampir habis',
-                color: AppColors.warning,
-                onTap: () => Navigator.pushNamed(context, AppRoutes.inventoryList),
-              ),
-            );
-          }
-        }
-
-        // TODO: Add overdue receivables alert
-
-        if (alerts.isEmpty) return const SizedBox.shrink();
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Peringatan',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              'Transaksi Terakhir',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            const SizedBox(height: 12),
-            ...alerts,
+            TextButton(
+              onPressed: () {
+                Navigator.pushNamed(context, AppRoutes.ledger);
+              },
+              child: const Text('Lihat Semua'),
+            ),
           ],
-        );
-      },
-    );
-  }
-
-  Widget _buildAlertCard({
-    required IconData icon,
-    required String title,
-    required String message,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      color: color.withOpacity(0.1),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: color.withOpacity(0.3)),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      message,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: color.withOpacity(0.7),
-              ),
-            ],
-          ),
         ),
-      ),
+        const SizedBox(height: 12),
+        if (transactionProvider.isLoading)
+          const Center(child: CircularProgressIndicator())
+        else if (recentTransactions.isEmpty)
+          _buildEmptyState(
+            context,
+            icon: Icons.receipt_long_outlined,
+            message: 'Belum ada transaksi',
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: recentTransactions.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final transaction = recentTransactions[index];
+              return _buildTransactionItem(context, transaction);
+            },
+          ),
+      ],
     );
   }
 
-  Widget _buildRecentTransactions() {
-    return Consumer<TransactionProvider>(
-      builder: (context, provider, _) {
-        final transactions = provider.transactions.take(5).toList();
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Transaksi Terakhir',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(context, AppRoutes.ledger),
-                  child: const Text('Lihat Semua'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (transactions.isEmpty)
-              _buildEmptyTransactions()
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: transactions.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  return _buildTransactionItem(transactions[index]);
-                },
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildTransactionItem(TransactionModel transaction) {
-    final color = AppColors.getTransactionTypeColor(
-      transaction.transactionType.value,
-    );
-    final isPositive = transaction.profit >= 0;
+  Widget _buildTransactionItem(BuildContext context, TransactionModel transaction) {
+    final theme = Theme.of(context);
+    final isProfit = transaction.profit >= 0;
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          shape: BoxShape.circle,
+          color: _getTransactionColor(transaction.transactionType).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
           _getTransactionIcon(transaction.transactionType),
-          color: color,
+          color: _getTransactionColor(transaction.transactionType),
           size: 20,
         ),
       ),
       title: Text(
         transaction.description ?? transaction.transactionType.label,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w500,
+        ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontWeight: FontWeight.w500),
       ),
       subtitle: Text(
         Formatters.formatRelativeDate(transaction.transactionDate),
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -764,186 +637,241 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Text(
             Formatters.formatCurrency(transaction.amount),
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           if (transaction.profit != 0)
             Text(
-              '${isPositive ? '+' : ''}${Formatters.formatCurrency(transaction.profit)}',
-              style: TextStyle(
-                fontSize: 12,
-                color: isPositive ? AppColors.success : AppColors.error,
+              '${isProfit ? '+' : ''}${Formatters.formatCurrency(transaction.profit)}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isProfit ? AppColors.success : AppColors.error,
                 fontWeight: FontWeight.w500,
               ),
             ),
         ],
       ),
-      onTap: () => Navigator.pushNamed(
-        context,
-        AppRoutes.transactionDetail,
-        arguments: transaction,
-      ),
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          AppRoutes.transactionDetail,
+          arguments: transaction,
+        );
+      },
     );
   }
 
-  Widget _buildEmptyTransactions() {
+  Widget _buildLowStockAlert(BuildContext context) {
+    final theme = Theme.of(context);
+    final inventoryProvider = context.watch<InventoryProvider>();
+    final lowStockItems = inventoryProvider.lowStockItems;
+
+    if (lowStockItems.isEmpty) return const SizedBox.shrink();
+
     return Container(
-      padding: const EdgeInsets.all(32),
-      alignment: Alignment.center,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 48,
-            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            AppStrings.noTransactions,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+          Row(
+            children: [
+              Icon(Icons.warning_amber, color: AppColors.warning, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Stok Menipis',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.warning,
                 ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, AppRoutes.inventoryList);
+                },
+                child: const Text('Lihat'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${lowStockItems.length} barang dengan stok rendah',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: lowStockItems.take(3).map((item) {
+              return Chip(
+                label: Text(
+                  '${item.name} (${item.stock})',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                backgroundColor: AppColors.warning.withOpacity(0.2),
+                side: BorderSide.none,
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+              );
+            }).toList(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFAB() {
-    final settings = context.watch<SettingsProvider>();
+  Widget _buildEmptyState(
+    BuildContext context, {
+    required IconData icon,
+    required String message,
+    String? action,
+    VoidCallback? onAction,
+  }) {
+    final theme = Theme.of(context);
 
-    return FloatingActionButton.extended(
-      onPressed: () => _showTransactionOptions(context, settings),
-      icon: const Icon(Icons.add),
-      label: const Text('Transaksi'),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            size: 48,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          if (action != null && onAction != null) ...[
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: onAction,
+              child: Text(action),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
-  void _showTransactionOptions(BuildContext context, SettingsProvider settings) {
+  Widget? _buildFAB(BuildContext context, SettingsProvider settings) {
+    return FloatingActionButton(
+      onPressed: () {
+        _showAddTransactionSheet(context, settings);
+      },
+      child: const Icon(Icons.add),
+    );
+  }
+
+  void _showAddTransactionSheet(BuildContext context, SettingsProvider settings) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Buat Transaksi Baru',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 20),
-              if (settings.isDigitalEnabled)
-                _buildTransactionOption(
-                  icon: Icons.smartphone,
-                  title: 'Transaksi Digital',
-                  subtitle: 'Jual/beli saldo e-wallet atau transfer',
-                  color: AppColors.digitalAccount,
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tambah Transaksi',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 20),
+                if (settings.isDigitalEnabled)
+                  _buildSheetItem(
+                    context,
+                    icon: Icons.smartphone,
+                    title: 'Transaksi Digital',
+                    subtitle: 'Beli/jual saldo e-wallet',
+                    color: AppColors.digitalAccount,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(context, AppRoutes.digitalForm);
+                    },
+                  ),
+                if (settings.isRetailEnabled)
+                  _buildSheetItem(
+                    context,
+                    icon: Icons.store,
+                    title: 'Transaksi Ritel',
+                    subtitle: 'Penjualan barang',
+                    color: AppColors.success,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(context, AppRoutes.retailForm);
+                    },
+                  ),
+                _buildSheetItem(
+                  context,
+                  icon: Icons.swap_horiz,
+                  title: 'Transfer',
+                  subtitle: 'Transfer antar akun',
+                  color: AppColors.info,
                   onTap: () {
                     Navigator.pop(context);
-                    Navigator.pushNamed(context, AppRoutes.digitalForm);
+                    Navigator.pushNamed(context, AppRoutes.transferForm);
                   },
                 ),
-              if (settings.isRetailEnabled) ...[
-                const SizedBox(height: 12),
-                _buildTransactionOption(
-                  icon: Icons.store,
-                  title: 'Transaksi Ritel',
-                  subtitle: 'Jual barang dari stok',
-                  color: AppColors.success,
+                _buildSheetItem(
+                  context,
+                  icon: Icons.account_balance_wallet,
+                  title: 'Prive',
+                  subtitle: 'Penarikan pribadi',
+                  color: AppColors.error,
                   onTap: () {
                     Navigator.pop(context);
-                    Navigator.pushNamed(context, AppRoutes.retailForm);
+                    Navigator.pushNamed(context, AppRoutes.priveForm);
                   },
                 ),
               ],
-              const SizedBox(height: 12),
-              _buildTransactionOption(
-                icon: Icons.swap_horiz,
-                title: 'Transfer',
-                subtitle: 'Pindahkan saldo antar akun',
-                color: AppColors.info,
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, AppRoutes.transferForm);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildTransactionOption(
-                icon: Icons.account_balance_wallet,
-                title: 'Prive',
-                subtitle: 'Penarikan untuk keperluan pribadi',
-                color: AppColors.error,
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, AppRoutes.priveForm);
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildTransactionOption({
+  Widget _buildSheetItem(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
     required Color color,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.2)),
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: color.withOpacity(0.7)),
-          ],
-        ),
+        child: Icon(icon, color: color),
       ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(subtitle),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: onTap,
     );
   }
 
@@ -959,7 +887,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   IconData _getAccountIcon(AccountType type) {
     switch (type) {
       case AccountType.cash:
-        return Icons.account_balance_wallet;
+        return Icons.wallet;
       case AccountType.digital:
         return Icons.smartphone;
       case AccountType.bank:
@@ -985,4 +913,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return Icons.payments;
     }
   }
+
+  Color _getTransactionColor(TransactionType type) {
+    switch (type) {
+      case TransactionType.digital:
+        return AppColors.digitalAccount;
+      case TransactionType.retail:
+        return AppColors.success;
+      case TransactionType.transfer:
+        return AppColors.info;
+      case TransactionType.prive:
+        return AppColors.error;
+      case TransactionType.adjustment:
+        return AppColors.warning;
+      case TransactionType.receivablePayment:
+        return AppColors.success;
+    }
+  }
+}
+
+/// Helper class untuk quick action
+class _QuickAction {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 }
