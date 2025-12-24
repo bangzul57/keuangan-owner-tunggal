@@ -12,7 +12,7 @@ class ConfirmDialog extends StatelessWidget {
   final IconData? icon;
   final Color? iconColor;
   final ConfirmDialogType type;
-  final bool showCancel;
+  final bool showCancelButton; // RENAMED dari showCancel
   final VoidCallback? onConfirm;
   final VoidCallback? onCancel;
 
@@ -25,7 +25,7 @@ class ConfirmDialog extends StatelessWidget {
     this.icon,
     this.iconColor,
     this.type = ConfirmDialogType.confirm,
-    this.showCancel = true,
+    this.showCancelButton = true, // RENAMED
     this.onConfirm,
     this.onCancel,
   });
@@ -40,7 +40,7 @@ class ConfirmDialog extends StatelessWidget {
     IconData? icon,
     Color? iconColor,
     ConfirmDialogType type = ConfirmDialogType.confirm,
-    bool showCancel = true,
+    bool showCancelButton = true, // RENAMED
   }) async {
     final result = await showDialog<bool>(
       context: context,
@@ -53,7 +53,7 @@ class ConfirmDialog extends StatelessWidget {
         icon: icon,
         iconColor: iconColor,
         type: type,
-        showCancel: showCancel,
+        showCancelButton: showCancelButton, // RENAMED
       ),
     );
 
@@ -79,8 +79,8 @@ class ConfirmDialog extends StatelessWidget {
     );
   }
 
-  /// Dialog konfirmasi batalkan
-  static Future<bool> showCancel({
+  /// Dialog konfirmasi batalkan - RENAMED dari showCancel
+  static Future<bool> showCancelConfirm({
     required BuildContext context,
     String? customMessage,
   }) {
@@ -109,7 +109,7 @@ class ConfirmDialog extends StatelessWidget {
       confirmText: buttonText ?? AppStrings.ok,
       type: ConfirmDialogType.info,
       icon: Icons.info_outline,
-      showCancel: false,
+      showCancelButton: false,
     );
   }
 
@@ -127,7 +127,7 @@ class ConfirmDialog extends StatelessWidget {
       confirmText: buttonText ?? AppStrings.ok,
       type: ConfirmDialogType.success,
       icon: Icons.check_circle_outline,
-      showCancel: false,
+      showCancelButton: false,
     );
   }
 
@@ -145,7 +145,7 @@ class ConfirmDialog extends StatelessWidget {
       confirmText: buttonText ?? AppStrings.ok,
       type: ConfirmDialogType.danger,
       icon: Icons.error_outline,
-      showCancel: false,
+      showCancelButton: false,
     );
   }
 
@@ -209,7 +209,7 @@ class ConfirmDialog extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
             child: Row(
               children: [
-                if (showCancel) ...[
+                if (showCancelButton) ...[
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
